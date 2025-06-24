@@ -42,5 +42,20 @@ else
     echo "[$TIMESTAMP] No activity. Backup skipped."
 fi
 
-# === CLEANUP: Delete backups older than 7 days ===
-find "$BACKUP_DIR" -type f -name "*.tar.gz" -mtime +7 -delete
+# === SMART CLEANUP: Keep at least 15 backups, remove older than 20 days ===
+all_backups=($(ls -1t "$BACKUP_DIR"/*.tar.gz 2>/dev/null)) # sorted newest first
+total_backups=${#all_backups[@]}
+
+if [ "$total_backups" -gt 15 ]; then
+    echo "[$TIMESTAMP] Checking for old backups to delete..."
+
+    # Loop from the 16th backup onward
+    for ((i=15; i<total_backups; i++)); do
+        file="${all_backups[$i]}"
+        # Only delete if older than 20 days
+        if [ "$(find "$file" -mtime +20)" ]; then
+            echo "Deleting old backup: $file"
+            rm -f "$file"
+        fi
+    done
+fi
